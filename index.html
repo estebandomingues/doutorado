@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Marginália — Gestor de Leituras Acadêmicas</title>
+<style>
+  :root{
+    --papel: #ECE8DC;
+    --papel-claro: #F6F3E9;
+    --tinta: #24241F;
+    --tinta-suave: #59564A;
+    --borda: #C9C0A4;
+    --borda-forte: #A99E7E;
+    --vinho: #7A2E2A;
+    --vinho-claro: #9A4F44;
+    --azul-arquivo: #3E5C63;
+    --ok: #4C6B3D;
+    --erro: #A3402F;
+    --sombra: 0 2px 8px rgba(36,36,31,0.12);
+    --raio: 3px;
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--papel);
+    color:var(--tinta);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+  }
+  ::selection{ background: rgba(122,46,42,0.25); }
+  button, input, select, textarea{ font-family:inherit; font-size:inherit; color:inherit; }
+  button{ cursor:pointer; }
+  a{ color:var(--vinho); }
+
+  /* ---------- layout de topo ---------- */
+  #topo{
+    display:flex; align-items:baseline; gap:28px;
+    padding:18px 28px 0 28px;
+    border-bottom:1px solid var(--borda-forte);
+    background:var(--papel-claro);
+  }
+  #marca{
+    font-family:var(--serif);
+    font-size:22px;
+    font-weight:700;
+    color:var(--vinho);
+    margin:0 0 14px 0;
+    white-space:nowrap;
+  }
+  #marca small{
+    display:block;
+    font-family:var(--sans);
+    font-size:11px;
+    font-weight:400;
+    color:var(--tinta-suave);
+    margin-top:2px;
+    letter-spacing:.02em;
+  }
+  nav#abas{ display:flex; gap:2px; flex:1; }
+  nav#abas button{
+    background:none; border:none; border-bottom:3px solid transparent;
+    padding:8px 16px 12px 16px;
+    font-size:14.5px;
+    color:var(--tinta-suave);
+  }
+  nav#abas button:hover{ color:var(--tinta); }
+  nav#abas button.ativa{
+    color:var(--vinho);
+    border-bottom-color:var(--vinho);
+    font-weight:600;
+  }
+  #acoes-topo{ display:flex; gap:8px; align-self:center; padding-bottom:12px; }
+
+  main{ padding:22px 28px 40px 28px; max-width:1400px; margin:0 auto; }
+  .tela{ display:none; }
+  .tela.ativa{ display:block; }
+
+  /* ---------- botões ---------- */
+  .btn{
+    background:var(--papel-claro);
+    border:1px solid var(--borda-forte);
+    border-radius:var(--raio);
+    padding:7px 13px;
+    font-size:13.5px;
+  }
+  .btn:hover{ background:#fff; }
+  .btn-primario{
+    background:var(--vinho); color:#fff; border-color:var(--vinho);
+  }
+  .btn-primario:hover{ background:var(--vinho-claro); }
+  .btn-perigo{ border-color:var(--erro); color:var(--erro); background:var(--papel-claro); }
+  .btn-perigo:hover{ background:var(--erro); color:#fff; }
+  .btn-pequeno{ padding:3px 9px; font-size:12px; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ---------- biblioteca ---------- */
+  #zona-upload{
+    border:2px dashed var(--borda-forte);
+    border-radius:6px;
+    padding:26px;
+    text-align:center;
+    background:var(--papel-claro);
+    color:var(--tinta-suave);
+    margin-bottom:20px;
+    transition:background .15s, border-color .15s;
+  }
+  #zona-upload.arrastando{ background:#fff; border-color:var(--vinho); color:var(--vinho); }
+  #zona-upload strong{ color:var(--tinta); }
+
+  .barra-busca{ display:flex; gap:10px; margin-bottom:16px; }
+  .barra-busca input[type="text"]{
+    flex:1; padding:8px 11px; border:1px solid var(--borda-forte); border-radius:var(--raio);
+    background:#fff;
+  }
+
+  table#tabela-obras{ width:100%; border-collapse:collapse; background:var(--papel-claro); }
+  table#tabela-obras th{
+    text-align:left; font-weight:600; font-size:12.5px; color:var(--tinta-suave);
+    padding:8px 10px; border-bottom:2px solid var(--borda-forte);
+  }
+  table#tabela-obras td{ padding:9px 10px; border-bottom:1px solid var(--borda); vertical-align:top; }
+  table#tabela-obras tr:hover td{ background:#fff; }
+  .titulo-obra{ font-weight:600; cursor:text; }
+  .campo-inline{ border:1px solid transparent; background:transparent; border-radius:2px; padding:1px 3px; width:100%; }
+  .campo-inline:hover, .campo-inline:focus{ border-color:var(--borda-forte); background:#fff; }
+  .tag-contagem{
+    display:inline-block; background:var(--azul-arquivo); color:#fff; border-radius:10px;
+    padding:1px 8px; font-size:11.5px;
+  }
+  .badge-ocr{ font-size:11px; padding:2px 7px; border-radius:9px; white-space:nowrap; }
+  .badge-ocr.pendente{ background:#e4dcc2; color:#5c5439; }
+  .badge-ocr.processando{ background:#e7d199; color:#5b4415; }
+  .badge-ocr.concluido{ background:#d7e3cd; color:var(--ok); }
+  .badge-ocr.erro{ background:#e9d0cb; color:var(--erro); }
+  .vazio{ color:var(--tinta-suave); font-style:italic; padding:30px 0; text-align:center; }
+
+  /* ---------- leitor ---------- */
+  #tela-leitor{ display:none; }
+  #tela-leitor.ativa{ display:flex; gap:20px; align-items:flex-start; }
+  #sem-obra{ color:var(--tinta-suave); font-style:italic; padding:60px 0; text-align:center; width:100%; }
+
+  #coluna-leitor{ flex:1 1 auto; min-width:0; }
+  #coluna-painel{ width:340px; flex:0 0 340px; }
+
+  .cabecalho-obra{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    margin-bottom:10px; flex-wrap:wrap;
+  }
+  .cabecalho-obra h2{ font-family:var(--serif); font-size:19px; margin:0; }
+  .cabecalho-obra .meta{ color:var(--tinta-suave); font-size:12.5px; }
+
+  #barra-ferramentas{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    background:var(--papel-claro); border:1px solid var(--borda);
+    border-radius:var(--raio); padding:7px 10px; margin-bottom:14px;
+  }
+  #barra-ferramentas .sep{ width:1px; height:20px; background:var(--borda-forte); margin:0 6px; }
+  #barra-ferramentas input[type="number"]{
+    width:52px; padding:5px; border:1px solid var(--borda-forte); border-radius:var(--raio); text-align:center;
+  }
+
+  #aviso-pagina{
+    padding:10px 12px; margin-bottom:10px; border-radius:var(--raio);
+    background:#efe6c9; border:1px solid #cbb972; color:#5b4415; font-size:13px;
+    display:none;
+  }
+  #aviso-pagina.mostrar{ display:block; }
+
+  #moldura-pagina{
+    background:#fff;
+    box-shadow:var(--sombra);
+    display:inline-block;
+    position:relative;
+    max-width:100%;
+    overflow:auto;
+  }
+  #pagina-container{ position:relative; }
+  #pagina-container canvas{ display:block; }
+  .camada-texto{
+    position:absolute; top:0; left:0; right:0; bottom:0;
+    overflow:hidden; line-height:1;
+  }
+  .camada-texto span.text-item{
+    position:absolute; white-space:pre; color:transparent; transform-origin:0% 0%; cursor:text;
+  }
+  .camada-texto span.text-item::selection{ background:rgba(122,46,42,.35); }
+  .highlight{ position:absolute; cursor:pointer; mix-blend-mode:multiply; border-radius:1px; }
+  .highlight.piscar{ outline:2px solid var(--vinho); }
+
+  /* ---------- painel de anotações ---------- */
+  .painel-caixa{
+    background:var(--papel-claro); border:1px solid var(--borda); border-radius:var(--raio);
+    padding:12px; margin-bottom:14px;
+  }
+  .painel-caixa h3{ margin:0 0 10px 0; font-size:13.5px; text-transform:none; color:var(--tinta-suave); font-weight:600; }
+  .item-anotacao{
+    border-left:4px solid #999; background:#fff; border-radius:2px; padding:8px 10px; margin-bottom:8px;
+    font-size:13px;
+  }
+  .item-anotacao .linha-topo{ display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:4px;}
+  .item-anotacao .pagina-tag{ font-size:11.5px; color:var(--tinta-suave); }
+  .item-anotacao .trecho{ font-style:italic; color:var(--tinta); cursor:pointer; }
+  .item-anotacao .trecho:hover{ text-decoration:underline; }
+  .item-anotacao .comentario{ margin-top:4px; color:var(--tinta-suave); }
+  .item-anotacao .rodape{ margin-top:6px; display:flex; gap:6px; }
+  .categoria-pill{
+    font-size:10.5px; padding:1px 7px; border-radius:9px; background:#e5e0cd; color:var(--tinta-suave);
+  }
+
+  /* ---------- temas & estudo ---------- */
+  #sub-abas-temas{ display:flex; gap:6px; margin-bottom:18px; }
+  #sub-abas-temas button{
+    background:var(--papel-claro); border:1px solid var(--borda-forte); border-radius:14px;
+    padding:6px 14px; font-size:13px;
+  }
+  #sub-abas-temas button.ativa{ background:var(--vinho); color:#fff; border-color:var(--vinho); }
+  .sub-tela{ display:none; }
+  .sub-tela.ativa{ display:block; }
+
+  .grade-temas{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+  .cartao-tema{
+    background:var(--papel-claro); border:1px solid var(--borda); border-radius:var(--raio);
+    padding:10px 12px; min-width:170px; display:flex; align-items:center; gap:9px;
+  }
+  .pastilha-cor{ width:16px; height:16px; border-radius:50%; flex:0 0 auto; border:1px solid rgba(0,0,0,.15); }
+  .cartao-tema .nome-tema{ font-weight:600; flex:1; }
+  .cartao-tema .acoes-tema{ display:flex; gap:4px; }
+
+  form.form-inline{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:22px; }
+  form.form-inline input[type="text"]{ padding:7px 10px; border:1px solid var(--borda-forte); border-radius:var(--raio); }
+  .paleta-cores{ display:flex; gap:5px; }
+  .cor-opcao{
+    width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer;
+  }
+  .cor-opcao.selecionada{ border-color:var(--tinta); }
+
+  .filtros-estudo{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    background:var(--papel-claro); border:1px solid var(--borda); padding:12px; border-radius:var(--raio);
+    margin-bottom:18px;
+  }
+  .filtros-estudo select, .filtros-estudo input[type="text"]{
+    padding:7px 9px; border:1px solid var(--borda-forte); border-radius:var(--raio); background:#fff;
+  }
+
+  .grupo-obra{ margin-bottom:22px; }
+  .grupo-obra > h3{
+    font-family:var(--serif); font-size:16px; margin:0 0 8px 0; border-bottom:1px solid var(--borda-forte);
+    padding-bottom:4px;
+  }
+  .grupo-obra .autor-ano{ font-size:12px; color:var(--tinta-suave); font-weight:400; }
+  .citacao-card{
+    background:var(--papel-claro); border-left:5px solid #999; border-radius:2px;
+    padding:10px 12px; margin-bottom:9px; cursor:pointer;
+  }
+  .citacao-card:hover{ background:#fff; }
+  .citacao-card .linha-topo{ display:flex; justify-content:space-between; font-size:11.5px; color:var(--tinta-suave); margin-bottom:5px;}
+  .citacao-card blockquote{ margin:0 0 5px 0; font-style:italic; }
+  .citacao-card .comentario{ font-size:13px; color:var(--tinta-suave); }
+
+  .filas-categorias{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .filas-categorias button{
+    background:var(--papel-claro); border:1px solid var(--borda-forte); border-radius:14px; padding:6px 14px; font-size:13px;
+  }
+  .filas-categorias button.ativa{ background:var(--azul-arquivo); color:#fff; border-color:var(--azul-arquivo); }
+
+  /* ---------- modal ---------- */
+  .fundo-modal{
+    display:none; position:fixed; inset:0; background:rgba(36,36,31,.45);
+    align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .fundo-modal.aberto{ display:flex; }
+  .caixa-modal{
+    background:var(--papel-claro); border-radius:6px; width:100%; max-width:440px;
+    box-shadow:0 10px 34px rgba(0,0,0,.3); padding:20px 22px; max-height:88vh; overflow:auto;
+  }
+  .caixa-modal h3{ margin:0 0 14px 0; font-family:var(--serif); font-size:18px; }
+  .campo{ margin-bottom:13px; }
+  .campo label{ display:block; font-size:12.5px; color:var(--tinta-suave); margin-bottom:4px; }
+  .campo select, .campo textarea, .campo input[type=text]{
+    width:100%; padding:8px 9px; border:1px solid var(--borda-forte); border-radius:var(--raio); background:#fff;
+  }
+  .campo textarea{ min-height:70px; resize:vertical; }
+  .trecho-preview{
+    background:#fff; border:1px solid var(--borda); border-radius:var(--raio); padding:9px 10px;
+    font-style:italic; font-size:13.5px; max-height:110px; overflow:auto; margin-bottom:4px;
+  }
+  .acoes-modal{ display:flex; justify-content:space-between; margin-top:16px; gap:8px; }
+  .acoes-modal .direita{ display:flex; gap:8px; }
+
+  /* ---------- progresso OCR ---------- */
+  .caixa-progresso{
+    background:#efe6c9; border:1px solid #cbb972; border-radius:var(--raio);
+    padding:10px 12px; margin-bottom:14px; font-size:13px; color:#5b4415;
+  }
+  .barra-progresso-ext{ background:#d9cc9d; border-radius:6px; height:8px; margin-top:6px; overflow:hidden; }
+  .barra-progresso-int{ background:#8a6d1f; height:100%; width:0%; transition:width .25s; }
+
+  .toast-pilha{ position:fixed; bottom:18px; right:18px; display:flex; flex-direction:column; gap:8px; z-index:200; }
+  .toast{
+    background:var(--tinta); color:#fff; padding:10px 16px; border-radius:var(--raio); font-size:13.5px;
+    box-shadow:var(--sombra); opacity:0; transform:translateY(6px); transition:all .2s;
+  }
+  .toast.mostrar{ opacity:1; transform:translateY(0); }
+
+  #dropdown-obra-manual{ font-size:12.5px; color:var(--tinta-suave); margin-top:6px; }
+
+  @media (max-width: 900px){
+    #tela-leitor.ativa{ flex-direction:column; }
+    #coluna-painel{ width:100%; flex:1 1 auto; }
+    #topo{ flex-wrap:wrap; }
+    table#tabela-obras thead{ display:none; }
+    table#tabela-obras, table#tabela-obras tbody, table#tabela-obras tr, table#tabela-obras td{ display:block; width:100%; }
+    table#tabela-obras tr{ border-bottom:2px solid var(--borda-forte); padding:8px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="topo">
+  <h1 id="marca">Marginália<small>gestor de leituras acadêmicas</small></h1>
+  <nav id="abas">
+    <button data-tela="biblioteca" class="ativa">Biblioteca</button>
+    <button data-tela="leitor">Leitor</button>
+    <button data-tela="temas">Temas &amp; Estudo</button>
+  </nav>
+  <div id="acoes-topo">
+    <button class="btn" id="btn-exportar-json">Exportar JSON</button>
+    <button class="btn" id="btn-exportar-md">Exportar Markdown</button>
+    <button class="btn" id="btn-importar-json">Importar backup</button>
+    <input type="file" id="input-importar" accept="application/json" hidden>
+  </div>
+</div>
+
+<main>
+
+  <!-- ===================== BIBLIOTECA ===================== -->
+  <section id="tela-biblioteca" class="tela ativa">
+    <div id="zona-upload">
+      <p><strong>Arraste PDFs aqui</strong> ou <button class="btn" id="btn-selecionar-arquivo">selecione arquivos</button></p>
+      <p style="font-size:12.5px;margin:6px 0 0 0;">PDFs escaneados (sem texto) recebem OCR automático em português. Para melhor resultado, use digitalizações com boa resolução (idealmente 300 DPI).</p>
+      <input type="file" id="input-arquivo" accept="application/pdf" multiple hidden>
+    </div>
+
+    <div class="barra-busca">
+      <input type="text" id="busca-biblioteca" placeholder="Buscar por título ou autor…">
+    </div>
+
+    <table id="tabela-obras">
+      <thead>
+        <tr>
+          <th style="width:26%">Título</th>
+          <th style="width:16%">Autor</th>
+          <th style="width:7%">Ano</th>
+          <th style="width:12%">Enviado em</th>
+          <th style="width:7%">Páginas</th>
+          <th style="width:10%">Marcações</th>
+          <th style="width:10%">OCR</th>
+          <th style="width:12%"></th>
+        </tr>
+      </thead>
+      <tbody id="corpo-tabela-obras"></tbody>
+    </table>
+    <div id="biblioteca-vazia" class="vazio" style="display:none;">Nenhum texto na biblioteca ainda. Envie um PDF acima para começar.</div>
+  </section>
+
+  <!-- ===================== LEITOR ===================== -->
+  <section id="tela-leitor" class="tela">
+    <div id="sem-obra">Selecione um texto na Biblioteca para abrir o leitor.</div>
+
+    <div id="coluna-leitor" style="display:none;">
+      <div class="cabecalho-obra">
+        <div>
+          <h2 id="leitor-titulo"></h2>
+          <div class="meta" id="leitor-meta"></div>
+        </div>
+      </div>
+
+      <div id="caixa-progresso-ocr" class="caixa-progresso" style="display:none;">
+        <div id="texto-progresso-ocr"></div>
+        <div class="barra-progresso-ext"><div class="barra-progresso-int" id="barra-progresso-ocr"></div></div>
+      </div>
+
+      <div id="barra-ferramentas">
+        <button class="btn btn-pequeno" id="btn-pagina-anterior">◀ Anterior</button>
+        <button class="btn btn-pequeno" id="btn-pagina-proxima">Próxima ▶</button>
+        <span class="sep"></span>
+        <span>Página</span>
+        <input type="number" id="input-pagina" min="1" value="1">
+        <span>de <span id="total-paginas">1</span></span>
+        <span class="sep"></span>
+        <button class="btn btn-pequeno" id="btn-zoom-menos">−</button>
+        <span id="rotulo-zoom">120%</span>
+        <button class="btn btn-pequeno" id="btn-zoom-mais">+</button>
+        <button class="btn btn-pequeno" id="btn-zoom-largura">Ajustar à largura</button>
+        <span class="sep"></span>
+        <button class="btn btn-pequeno" id="btn-marcar-manual">+ Marcação manual (sem seleção)</button>
+      </div>
+
+      <div id="aviso-pagina"></div>
+
+      <div id="moldura-pagina">
+        <div id="pagina-container">
+          <canvas id="canvas-pagina"></canvas>
+          <div class="camada-texto" id="camada-texto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="coluna-painel" style="display:none;">
+      <div class="painel-caixa">
+        <h3>Anotações desta obra (<span id="contagem-anotacoes-painel">0</span>)</h3>
+        <div id="lista-anotacoes-painel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TEMAS & ESTUDO ===================== -->
+  <section id="tela-temas" class="tela">
+    <div id="sub-abas-temas">
+      <button data-sub="gerenciar" class="ativa">Gerenciar temas</button>
+      <button data-sub="explorar">Explorar por tema</button>
+      <button data-sub="revisao">Fila de revisão</button>
+    </div>
+
+    <div id="sub-gerenciar" class="sub-tela ativa">
+      <form class="form-inline" id="form-novo-tema">
+        <input type="text" id="input-novo-tema" placeholder="Nome do novo tema" required>
+        <div class="paleta-cores" id="paleta-novo-tema"></div>
+        <input type="color" id="cor-customizada-novo-tema" value="#7A2E2A" title="Cor personalizada">
+        <button class="btn btn-primario" type="submit">Adicionar tema</button>
+      </form>
+      <div class="grade-temas" id="grade-temas"></div>
+      <div id="temas-vazio" class="vazio" style="display:none;">Nenhum tema cadastrado.</div>
+    </div>
+
+    <div id="sub-explorar" class="sub-tela">
+      <div class="filtros-estudo">
+        <label>Tema:
+          <select id="filtro-tema"></select>
+        </label>
+        <label>Categoria:
+          <select id="filtro-categoria-explorar">
+            <option value="">Todas</option>
+            <option>Importante</option>
+            <option>Voltar aqui</option>
+            <option>Não entendi</option>
+            <option>Outro</option>
+          </select>
+        </label>
+        <label>Obra:
+          <select id="filtro-obra-explorar"><option value="">Todas</option></select>
+        </label>
+        <input type="text" id="filtro-palavra-explorar" placeholder="Palavra-chave no trecho ou comentário…">
+      </div>
+      <div id="resultados-explorar"></div>
+      <div id="explorar-vazio" class="vazio" style="display:none;">Nenhuma citação encontrada com esses filtros.</div>
+    </div>
+
+    <div id="sub-revisao" class="sub-tela">
+      <div class="filas-categorias" id="filtro-categoria-revisao">
+        <button data-cat="Importante" class="ativa">Importante</button>
+        <button data-cat="Voltar aqui">Voltar aqui</button>
+        <button data-cat="Não entendi">Não entendi</button>
+        <button data-cat="Outro">Outro</button>
+      </div>
+      <div id="resultados-revisao"></div>
+      <div id="revisao-vazio" class="vazio" style="display:none;">Nada nesta fila por enquanto.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===================== MODAL DE ANOTAÇÃO ===================== -->
+<div class="fundo-modal" id="modal-anotacao">
+  <div class="caixa-modal">
+    <h3 id="titulo-modal-anotacao">Nova marcação</h3>
+    <div class="campo" id="campo-trecho-wrap">
+      <label>Trecho selecionado</label>
+      <div class="trecho-preview" id="preview-trecho"></div>
+    </div>
+    <div class="campo" id="campo-correcao-wrap" style="display:none;">
+      <label>Correção manual do texto (o reconhecimento por OCR pode conter erros)</label>
+      <textarea id="input-texto-corrigido" placeholder="Digite aqui a versão corrigida do trecho, se necessário"></textarea>
+    </div>
+    <div class="campo">
+      <label>Tema</label>
+      <select id="select-tema-anotacao"></select>
+    </div>
+    <div class="campo">
+      <label>Cor da marcação</label>
+      <div class="paleta-cores" id="paleta-anotacao"></div>
+    </div>
+    <div class="campo">
+      <label>Categoria</label>
+      <select id="select-categoria-anotacao">
+        <option>Importante</option>
+        <option>Voltar aqui</option>
+        <option>Não entendi</option>
+        <option selected>Outro</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label>Comentário</label>
+      <textarea id="input-comentario-anotacao" placeholder="Anotação livre sobre este trecho…"></textarea>
+    </div>
+    <div class="acoes-modal">
+      <button class="btn btn-perigo" id="btn-excluir-anotacao" style="display:none;">Excluir</button>
+      <div class="direita">
+        <button class="btn" id="btn-cancelar-anotacao">Cancelar</button>
+        <button class="btn btn-primario" id="btn-salvar-anotacao">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL EDITAR TEMA ===================== -->
+<div class="fundo-modal" id="modal-tema">
+  <div class="caixa-modal">
+    <h3>Editar tema</h3>
+    <div class="campo">
+      <label>Nome</label>
+      <input type="text" id="input-editar-nome-tema">
+    </div>
+    <div class="campo">
+      <label>Cor</label>
+      <div class="paleta-cores" id="paleta-editar-tema"></div>
+    </div>
+    <div class="acoes-modal">
+      <button class="btn btn-perigo" id="btn-excluir-tema">Excluir tema</button>
+      <div class="direita">
+        <button class="btn" id="btn-cancelar-tema">Cancelar</button>
+        <button class="btn btn-primario" id="btn-salvar-tema">Salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-pilha" id="pilha-toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONFIGURAÇÃO GERAL
+   ============================================================ */
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+const PALETA = ["#F5D563","#A9C47F","#6FA8A6","#D98E73","#B79FD1","#D98CA0","#93A6B8","#C4644B"];
+const CATEGORIAS = ["Importante","Voltar aqui","Não entendi","Outro"];
+const TEMAS_PADRAO = [
+  { nome:"Teoria",    cor: PALETA[2] },
+  { nome:"Método",    cor: PALETA[4] },
+  { nome:"Evidência", cor: PALETA[1] },
+  { nome:"Limite",    cor: PALETA[7] },
+  { nome:"Definição", cor: PALETA[0] }
+];
+const ESCALA_OCR = 3.5; // ~250-300dpi para páginas em tamanho carta/A4
+const TAMANHO_MAX_ARQUIVO = 300 * 1024 * 1024; // 300MB
+
+function uuid(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c){
+    const r = Math.random()*16|0, v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function hexParaRgba(hex, alpha){
+  hex = (hex||"#999999").replace("#","");
+  if (hex.length === 3) hex = hex.split("").map(function(c){ return c+c; }).join("");
+  const r = parseInt(hex.substring(0,2),16) || 0;
+  const g = parseInt(hex.substring(2,4),16) || 0;
+  const b = parseInt(hex.substring(4,6),16) || 0;
+  return "rgba("+r+","+g+","+b+","+alpha+")";
+}
+
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, function(c){
+    return { "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c];
+  });
+}
+
+function formatarData(iso){
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+  }catch(e){ return iso || ""; }
+}
+
+function mostrarToast(msg){
+  const pilha = document.getElementById("pilha-toast");
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  pilha.appendChild(el);
+  requestAnimationFrame(function(){ el.classList.add("mostrar"); });
+  setTimeout(function(){
+    el.classList.remove("mostrar");
+    setTimeout(function(){ el.remove(); }, 250);
+  }, 3200);
+}
+
+/* ============================================================
+   CAMADA DE PERSISTÊNCIA — IndexedDB
+   ============================================================ */
+const DB_NOME = "marginalia-db";
+const DB_VERSAO = 1;
+let dbPromise = null;
+
+function abrirDB(){
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise(function(resolve, reject){
+    const req = indexedDB.open(DB_NOME, DB_VERSAO);
+    req.onupgradeneeded = function(ev){
+      const db = ev.target.result;
+      if (!db.objectStoreNames.contains("obras")) db.createObjectStore("obras", { keyPath:"id" });
+      if (!db.objectStoreNames.contains("temas")) db.createObjectStore("temas", { keyPath:"id" });
+      if (!db.objectStoreNames.contains("anotacoes")) db.createObjectStore("anotacoes", { keyPath:"id" });
+    };
+    req.onsuccess = function(ev){ resolve(ev.target.result); };
+    req.onerror = function(ev){ reject(ev.target.error); };
+  });
+  return dbPromise;
+}
+
+function transacao(storeName, modo){
+  return abrirDB().then(function(db){
+    return db.transaction(storeName, modo).objectStore(storeName);
+  });
+}
+
+function dbTodos(storeName){
+  return transacao(storeName, "readonly").then(function(store){
+    return new Promise(function(resolve, reject){
+      const req = store.getAll();
+      req.onsuccess = function(){ resolve(req.result || []); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  });
+}
+
+function dbSalvar(storeName, obj){
+  return transacao(storeName, "readwrite").then(function(store){
+    return new Promise(function(resolve, reject){
+      const req = store.put(obj);
+      req.onsuccess = function(){ resolve(obj); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  });
+}
+
+function dbExcluir(storeName, id){
+  return transacao(storeName, "readwrite").then(function(store){
+    return new Promise(function(resolve, reject){
+      const req = store.delete(id);
+      req.onsuccess = function(){ resolve(); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  });
+}
+
+/* ============================================================
+   ESTADO DA APLICAÇÃO
+   ============================================================ */
+const estado = {
+  obras: [],
+  temas: [],
+  anotacoes: [],
+  obraAtualId: null,
+  paginaAtual: 1,
+  escala: 1.2,
+  corSelecionadaModal: PALETA[0],
+  edicaoAnotacaoId: null,
+  pendente: null, // { obraId, pagina, relRects, textoExato, origem }
+  documentosPdf: new Map(), // obraId -> pdfDoc (em memória)
+  categoriaRevisaoAtiva: "Importante",
+  editandoTemaId: null,
+  jump: null // { anotacaoId } usado para rolar/piscar após render
+};
+
+let ocrWorkerPromise = null;
+function obterOcrWorker(){
+  if (ocrWorkerPromise) return ocrWorkerPromise;
+  ocrWorkerPromise = (async function(){
+    try{
+      const w = await Tesseract.createWorker("por");
+      return w;
+    }catch(e){
+      console.warn("Falha ao carregar idioma 'por' do OCR, usando 'eng'.", e);
+      const w = await Tesseract.createWorker("eng");
+      return w;
+    }
+  })();
+  return ocrWorkerPromise;
+}
+
+/* ============================================================
+   NAVEGAÇÃO ENTRE TELAS / SUB-ABAS
+   ============================================================ */
+document.querySelectorAll("nav#abas button").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    irParaTela(btn.dataset.tela);
+  });
+});
+
+function irParaTela(nome){
+  document.querySelectorAll("nav#abas button").forEach(function(b){
+    b.classList.toggle("ativa", b.dataset.tela === nome);
+  });
+  document.querySelectorAll("main > section.tela").forEach(function(s){
+    s.classList.toggle("ativa", s.id === "tela-" + nome);
+  });
+  if (nome === "temas") { renderizarGerenciarTemas(); renderizarExplorar(); renderizarRevisao(); }
+  if (nome === "biblioteca") renderizarBiblioteca();
+}
+
+document.querySelectorAll("#sub-abas-temas button").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll("#sub-abas-temas button").forEach(function(b){ b.classList.toggle("ativa", b === btn); });
+    document.querySelectorAll(".sub-tela").forEach(function(s){ s.classList.toggle("ativa", s.id === "sub-" + btn.dataset.sub); });
+  });
+});
+
+/* ============================================================
+   CARREGAMENTO INICIAL
+   ============================================================ */
+async function carregarTudo(){
+  try{
+    const [obras, temas, anotacoes] = await Promise.all([
+      dbTodos("obras"), dbTodos("temas"), dbTodos("anotacoes")
+    ]);
+    estado.obras = obras;
+    estado.temas = temas;
+    estado.anotacoes = anotacoes;
+
+    if (estado.temas.length === 0){
+      for (const t of TEMAS_PADRAO){
+        const novo = { id: uuid(), nome: t.nome, cor: t.cor };
+        await dbSalvar("temas", novo);
+        estado.temas.push(novo);
+      }
+    }
+
+    renderizarBiblioteca();
+    montarPaletaEstatica();
+
+    // retoma OCR pendente de obras que ficaram incompletas
+    estado.obras.forEach(function(obra){
+      if (obra.ocrStatus === "processando" || (obra.paginas && precisaDeOcr(obra))){
+        processarFilaOcr(obra.id);
+      }
+    });
+  }catch(e){
+    console.error(e);
+    mostrarToast("Não foi possível abrir o armazenamento local (IndexedDB). Verifique as permissões do navegador.");
+  }
+}
+
+function precisaDeOcr(obra){
+  if (!obra.paginas) return false;
+  return obra.paginas.some(function(p){ return p && p.temTexto === false && !p.ocr; });
+}
+
+function obraPorId(id){ return estado.obras.find(function(o){ return o.id === id; }); }
+function temaPorId(id){ return estado.temas.find(function(t){ return t.id === id; }); }
+
+/* ============================================================
+   PALETAS DE COR (elementos reutilizáveis)
+   ============================================================ */
+function montarPaletaEstatica(){
+  const alvoNovoTema = document.getElementById("paleta-novo-tema");
+  alvoNovoTema.innerHTML = "";
+  PALETA.forEach(function(cor){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cor-opcao";
+    b.style.background = cor;
+    b.title = cor;
+    b.addEventListener("click", function(){
+      document.querySelectorAll("#paleta-novo-tema .cor-opcao").forEach(function(x){ x.classList.remove("selecionada"); });
+      b.classList.add("selecionada");
+      document.getElementById("cor-customizada-novo-tema").value = cor;
+    });
+    alvoNovoTema.appendChild(b);
+  });
+}
+
+function construirPaleta(container, corAtual, aoEscolher){
+  container.innerHTML = "";
+  PALETA.forEach(function(cor){
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cor-opcao" + (cor.toLowerCase() === (corAtual||"").toLowerCase() ? " selecionada" : "");
+    b.style.background = cor;
+    b.title = cor;
+    b.addEventListener("click", function(){
+      container.querySelectorAll(".cor-opcao").forEach(function(x){ x.classList.remove("selecionada"); });
+      b.classList.add("selecionada");
+      aoEscolher(cor);
+    });
+    container.appendChild(b);
+  });
+}
+
+/* ============================================================
+   TELA 1 — BIBLIOTECA
+   ============================================================ */
+const zonaUpload = document.getElementById("zona-upload");
+const inputArquivo = document.getElementById("input-arquivo");
+
+document.getElementById("btn-selecionar-arquivo").addEventListener("click", function(){ inputArquivo.click(); });
+inputArquivo.addEventListener("change", function(){
+  lidarComArquivos(inputArquivo.files);
+  inputArquivo.value = "";
+});
+
+["dragenter","dragover"].forEach(function(evName){
+  zonaUpload.addEventListener(evName, function(e){
+    e.preventDefault(); e.stopPropagation();
+    zonaUpload.classList.add("arrastando");
+  });
+});
+["dragleave","drop"].forEach(function(evName){
+  zonaUpload.addEventListener(evName, function(e){
+    e.preventDefault(); e.stopPropagation();
+    zonaUpload.classList.remove("arrastando");
+  });
+});
+zonaUpload.addEventListener("drop", function(e){
+  if (e.dataTransfer && e.dataTransfer.files) lidarComArquivos(e.dataTransfer.files);
+});
+
+async function lidarComArquivos(fileList){
+  const arquivos = Array.from(fileList || []);
+  for (const file of arquivos){
+    await processarUpload(file);
+  }
+}
+
+async function processarUpload(file){
+  if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)){
+    mostrarToast('O arquivo "' + file.name + '" não é um PDF e foi ignorado.');
+    return;
+  }
+  if (file.size > TAMANHO_MAX_ARQUIVO){
+    mostrarToast('O arquivo "' + file.name + '" é maior que 300MB e não pôde ser enviado.');
+    return;
+  }
+  let arrayBuffer, pdfDoc;
+  try{
+    arrayBuffer = await file.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise;
+  }catch(e){
+    console.error(e);
+    mostrarToast('Não foi possível abrir "' + file.name + '". O arquivo pode estar corrompido ou protegido.');
+    return;
+  }
+
+  const obra = {
+    id: uuid(),
+    titulo: file.name.replace(/\.pdf$/i, ""),
+    autor: "",
+    ano: "",
+    arquivoBlob: file,
+    dataUpload: new Date().toISOString(),
+    numPaginas: pdfDoc.numPages,
+    paginas: new Array(pdfDoc.numPages).fill(null).map(function(){ return { temTexto:null, ocr:null }; }),
+    ocrStatus: "pendente",
+    ocred: false
+  };
+
+  try{
+    await dbSalvar("obras", obra);
+  }catch(e){
+    console.error(e);
+    mostrarToast('Não foi possível salvar "' + file.name + '" no armazenamento local (arquivo grande demais?).');
+    return;
+  }
+
+  estado.obras.push(obra);
+  renderizarBiblioteca();
+  mostrarToast('"' + obra.titulo + '" adicionado à biblioteca.');
+
+  analisarPaginasENecessidadeOcr(obra.id, pdfDoc);
+}
+
+async function analisarPaginasENecessidadeOcr(obraId, pdfDocParam){
+  const obra = obraPorId(obraId);
+  if (!obra) return;
+  let pdfDoc = pdfDocParam;
+  try{
+    if (!pdfDoc) pdfDoc = await carregarPdfDaObra(obra);
+    for (let i = 1; i <= obra.numPaginas; i++){
+      const page = await pdfDoc.getPage(i);
+      const conteudo = await page.getTextContent();
+      const temTexto = conteudo.items.some(function(it){ return it.str && it.str.trim().length > 0; });
+      obra.paginas[i-1].temTexto = temTexto;
+    }
+    obra.ocrStatus = precisaDeOcr(obra) ? "pendente" : "concluido";
+    obra.ocred = !precisaDeOcr(obra);
+    await dbSalvar("obras", obra);
+    renderizarBiblioteca();
+    if (precisaDeOcr(obra)) processarFilaOcr(obra.id);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+async function carregarPdfDaObra(obra){
+  if (estado.documentosPdf.has(obra.id)) return estado.documentosPdf.get(obra.id);
+  const arrayBuffer = await obra.arquivoBlob.arrayBuffer();
+  const pdfDoc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  estado.documentosPdf.set(obra.id, pdfDoc);
+  return pdfDoc;
+}
+
+async function processarFilaOcr(obraId){
+  const obra = obraPorId(obraId);
+  if (!obra || !obra.paginas) return;
+  const pendentes = [];
+  obra.paginas.forEach(function(p, idx){
+    if (p && p.temTexto === false && !p.ocr) pendentes.push(idx + 1);
+  });
+  if (pendentes.length === 0){
+    obra.ocrStatus = "concluido";
+    obra.ocred = true;
+    await dbSalvar("obras", obra);
+    renderizarBiblioteca();
+    return;
+  }
+
+  obra.ocrStatus = "processando";
+  await dbSalvar("obras", obra);
+  renderizarBiblioteca();
+
+  const pdfDoc = await carregarPdfDaObra(obra).catch(function(){ return null; });
+  if (!pdfDoc){
+    obra.ocrStatus = "erro";
+    await dbSalvar("obras", obra);
+    renderizarBiblioteca();
+    return;
+  }
+
+  const total = pendentes.length;
+  for (let i = 0; i < pendentes.length; i++){
+    const numPagina = pendentes[i];
+    atualizarProgressoOcr(obraId, i + 1, total);
+    try{
+      const resultado = await ocrDaPagina(pdfDoc, numPagina);
+      obra.paginas[numPagina - 1].ocr = resultado || "erro";
+    }catch(e){
+      console.error("Erro no OCR da página " + numPagina, e);
+      obra.paginas[numPagina - 1].ocr = "erro";
+    }
+    await dbSalvar("obras", obra);
+    if (estado.obraAtualId === obraId && estado.paginaAtual === numPagina){
+      renderizarPagina(estado.paginaAtual);
+    }
+  }
+
+  obra.ocrStatus = precisaDeOcr(obra) ? "erro" : "concluido";
+  obra.ocred = !precisaDeOcr(obra);
+  await dbSalvar("obras", obra);
+  atualizarProgressoOcr(obraId, total, total, true);
+  renderizarBiblioteca();
+}
+
+async function ocrDaPagina(pdfDoc, numPagina){
+  const page = await pdfDoc.getPage(numPagina);
+  const viewport = page.getViewport({ scale: ESCALA_OCR });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  const ctx = canvas.getContext("2d");
+  await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+  const worker = await obterOcrWorker();
+  const { data } = await worker.recognize(canvas);
+  const palavras = (data.words || []).filter(function(w){ return w.text && w.text.trim(); }).map(function(w){
+    return {
+      texto: w.text,
+      x0: w.bbox.x0 / canvas.width, y0: w.bbox.y0 / canvas.height,
+      x1: w.bbox.x1 / canvas.width, y1: w.bbox.y1 / canvas.height
+    };
+  });
+  return { palavras: palavras, texto: (data.text || "").trim() };
+}
+
+function atualizarProgressoOcr(obraId, atual, total, finalizado){
+  if (estado.obraAtualId !== obraId) return;
+  const caixa = document.getElementById("caixa-progresso-ocr");
+  const texto = document.getElementById("texto-progresso-ocr");
+  const barra = document.getElementById("barra-progresso-ocr");
+  if (finalizado){
+    caixa.style.display = "none";
+    return;
+  }
+  caixa.style.display = "block";
+  texto.textContent = "Processando página " + atual + " de " + total + " com OCR — isso pode demorar em PDFs escaneados. Você pode continuar usando o restante do sistema enquanto isso.";
+  barra.style.width = Math.round((atual/total)*100) + "%";
+}
+
+function renderizarBiblioteca(){
+  const corpo = document.getElementById("corpo-tabela-obras");
+  const vazio = document.getElementById("biblioteca-vazia");
+  const termo = (document.getElementById("busca-biblioteca").value || "").toLowerCase().trim();
+
+  let lista = estado.obras.slice().sort(function(a,b){ return new Date(b.dataUpload) - new Date(a.dataUpload); });
+  if (termo){
+    lista = lista.filter(function(o){
+      return (o.titulo||"").toLowerCase().includes(termo) || (o.autor||"").toLowerCase().includes(termo);
+    });
+  }
+
+  corpo.innerHTML = "";
+  vazio.style.display = lista.length ? "none" : "block";
+
+  lista.forEach(function(obra){
+    const contagem = estado.anotacoes.filter(function(a){ return a.obraId === obra.id; }).length;
+    const tr = document.createElement("tr");
+
+    const tdTitulo = document.createElement("td");
+    const inpTitulo = document.createElement("input");
+    inpTitulo.className = "campo-inline titulo-obra";
+    inpTitulo.value = obra.titulo;
+    inpTitulo.addEventListener("change", function(){ atualizarCampoObra(obra.id, "titulo", inpTitulo.value); });
+    tdTitulo.appendChild(inpTitulo);
+
+    const tdAutor = document.createElement("td");
+    const inpAutor = document.createElement("input");
+    inpAutor.className = "campo-inline";
+    inpAutor.placeholder = "—";
+    inpAutor.value = obra.autor || "";
+    inpAutor.addEventListener("change", function(){ atualizarCampoObra(obra.id, "autor", inpAutor.value); });
+    tdAutor.appendChild(inpAutor);
+
+    const tdAno = document.createElement("td");
+    const inpAno = document.createElement("input");
+    inpAno.className = "campo-inline";
+    inpAno.placeholder = "—";
+    inpAno.style.width = "60px";
+    inpAno.value = obra.ano || "";
+    inpAno.addEventListener("change", function(){ atualizarCampoObra(obra.id, "ano", inpAno.value); });
+    tdAno.appendChild(inpAno);
+
+    const tdData = document.createElement("td");
+    tdData.textContent = formatarData(obra.dataUpload);
+
+    const tdPaginas = document.createElement("td");
+    tdPaginas.textContent = obra.numPaginas;
+
+    const tdContagem = document.createElement("td");
+    const tagContagem = document.createElement("span");
+    tagContagem.className = "tag-contagem";
+    tagContagem.textContent = contagem;
+    tdContagem.appendChild(tagContagem);
+
+    const tdOcr = document.createElement("td");
+    tdOcr.appendChild(construirBadgeOcr(obra));
+
+    const tdAcoes = document.createElement("td");
+    const btnAbrir = document.createElement("button");
+    btnAbrir.className = "btn btn-pequeno";
+    btnAbrir.textContent = "Abrir";
+    btnAbrir.addEventListener("click", function(){ abrirNoLeitor(obra.id); });
+    const btnExcluir = document.createElement("button");
+    btnExcluir.className = "btn btn-pequeno btn-perigo";
+    btnExcluir.textContent = "Excluir";
+    btnExcluir.style.marginLeft = "5px";
+    btnExcluir.addEventListener("click", function(){ excluirObra(obra.id); });
+    tdAcoes.appendChild(btnAbrir);
+    tdAcoes.appendChild(btnExcluir);
+
+    tr.appendChild(tdTitulo); tr.appendChild(tdAutor); tr.appendChild(tdAno);
+    tr.appendChild(tdData); tr.appendChild(tdPaginas); tr.appendChild(tdContagem);
+    tr.appendChild(tdOcr); tr.appendChild(tdAcoes);
+    corpo.appendChild(tr);
+  });
+
+  atualizarSelecaoObrasFiltros();
+}
+
+function construirBadgeOcr(obra){
+  const span = document.createElement("span");
+  if (!precisaDeOcr(obra) && obra.ocrStatus !== "processando" && obra.paginas && obra.paginas.every(function(p){ return p && p.temTexto === true; })){
+    span.className = "badge-ocr concluido";
+    span.textContent = "Texto nativo";
+  } else if (obra.ocrStatus === "processando"){
+    const feitas = obra.paginas.filter(function(p){ return p && (p.ocr || p.temTexto); }).length;
+    span.className = "badge-ocr processando";
+    span.textContent = "OCR " + feitas + "/" + obra.numPaginas;
+  } else if (obra.ocrStatus === "concluido"){
+    span.className = "badge-ocr concluido";
+    span.textContent = "OCR concluído";
+  } else if (obra.ocrStatus === "erro"){
+    span.className = "badge-ocr erro";
+    span.textContent = "OCR c/ erro";
+  } else {
+    span.className = "badge-ocr pendente";
+    span.textContent = "Aguardando análise";
+  }
+  return span;
+}
+
+async function atualizarCampoObra(obraId, campo, valor){
+  const obra = obraPorId(obraId);
+  if (!obra) return;
+  obra[campo] = valor;
+  await dbSalvar("obras", obra);
+  if (estado.obraAtualId === obraId) atualizarCabecalhoLeitor();
+  renderizarExplorar();
+  renderizarRevisao();
+}
+
+async function excluirObra(obraId){
+  const obra = obraPorId(obraId);
+  if (!obra) return;
+  if (!confirm('Excluir "' + obra.titulo + '" e todas as suas marcações? Esta ação não pode ser desfeita.')) return;
+
+  const anotacoesDaObra = estado.anotacoes.filter(function(a){ return a.obraId === obraId; });
+  for (const a of anotacoesDaObra) await dbExcluir("anotacoes", a.id);
+  estado.anotacoes = estado.anotacoes.filter(function(a){ return a.obraId !== obraId; });
+
+  await dbExcluir("obras", obraId);
+  estado.obras = estado.obras.filter(function(o){ return o.id !== obraId; });
+  estado.documentosPdf.delete(obraId);
+
+  if (estado.obraAtualId === obraId){
+    estado.obraAtualId = null;
+    document.getElementById("sem-obra").style.display = "block";
+    document.getElementById("coluna-leitor").style.display = "none";
+    document.getElementById("coluna-painel").style.display = "none";
+  }
+
+  renderizarBiblioteca();
+  renderizarExplorar();
+  renderizarRevisao();
+  mostrarToast("Obra excluída.");
+}
+
+document.getElementById("busca-biblioteca").addEventListener("input", renderizarBiblioteca);
+
+/* ============================================================
+   TELA 2 — LEITOR
+   ============================================================ */
+async function abrirNoLeitor(obraId){
+  estado.obraAtualId = obraId;
+  estado.paginaAtual = 1;
+  irParaTela("leitor");
+  document.getElementById("sem-obra").style.display = "none";
+  document.getElementById("coluna-leitor").style.display = "block";
+  document.getElementById("coluna-painel").style.display = "block";
+  atualizarCabecalhoLeitor();
+
+  const obra = obraPorId(obraId);
+  document.getElementById("input-pagina").max = obra.numPaginas;
+  document.getElementById("total-paginas").textContent = obra.numPaginas;
+
+  try{
+    await carregarPdfDaObra(obra);
+  }catch(e){
+    console.error(e);
+    mostrarToast("Não foi possível carregar o PDF desta obra.");
+    return;
+  }
+  await calcularZoomLargura();
+  renderizarPagina(1);
+  renderizarPainelAnotacoes();
+  if (obra.ocrStatus === "processando") atualizarProgressoOcr(obraId, 1, 1);
+  else document.getElementById("caixa-progresso-ocr").style.display = "none";
+}
+
+function atualizarCabecalhoLeitor(){
+  const obra = obraPorId(estado.obraAtualId);
+  if (!obra) return;
+  document.getElementById("leitor-titulo").textContent = obra.titulo;
+  const partes = [];
+  if (obra.autor) partes.push(obra.autor);
+  if (obra.ano) partes.push(obra.ano);
+  partes.push(obra.numPaginas + " páginas");
+  document.getElementById("leitor-meta").textContent = partes.join(" · ");
+}
+
+document.getElementById("btn-pagina-anterior").addEventListener("click", function(){ irParaPagina(estado.paginaAtual - 1); });
+document.getElementById("btn-pagina-proxima").addEventListener("click", function(){ irParaPagina(estado.paginaAtual + 1); });
+document.getElementById("input-pagina").addEventListener("change", function(e){ irParaPagina(parseInt(e.target.value, 10) || 1); });
+document.getElementById("btn-zoom-mais").addEventListener("click", function(){ estado.escala = Math.min(estado.escala + 0.2, 4); renderizarPagina(estado.paginaAtual); });
+document.getElementById("btn-zoom-menos").addEventListener("click", function(){ estado.escala = Math.max(estado.escala - 0.2, 0.4); renderizarPagina(estado.paginaAtual); });
+document.getElementById("btn-zoom-largura").addEventListener("click", async function(){ await calcularZoomLargura(); renderizarPagina(estado.paginaAtual); });
+
+async function calcularZoomLargura(){
+  const obra = obraPorId(estado.obraAtualId);
+  if (!obra) return;
+  try{
+    const pdfDoc = await carregarPdfDaObra(obra);
+    const page = await pdfDoc.getPage(1);
+    const vp1 = page.getViewport({ scale: 1 });
+    const larguraDisponivel = document.getElementById("moldura-pagina").parentElement.clientWidth - 40;
+    estado.escala = Math.max(0.4, Math.min(4, larguraDisponivel / vp1.width));
+  }catch(e){ /* mantém escala atual */ }
+}
+
+function irParaPagina(n){
+  const obra = obraPorId(estado.obraAtualId);
+  if (!obra) return;
+  n = Math.max(1, Math.min(obra.numPaginas, n));
+  renderizarPagina(n);
+}
+
+async function renderizarPagina(numPagina){
+  const obra = obraPorId(estado.obraAtualId);
+  if (!obra) return;
+  estado.paginaAtual = numPagina;
+  document.getElementById("input-pagina").value = numPagina;
+  document.getElementById("btn-pagina-anterior").disabled = numPagina <= 1;
+  document.getElementById("btn-pagina-proxima").disabled = numPagina >= obra.numPaginas;
+  document.getElementById("rotulo-zoom").textContent = Math.round(estado.escala * 100) + "%";
+
+  const pdfDoc = await carregarPdfDaObra(obra);
+  const page = await pdfDoc.getPage(numPagina);
+  const dpr = window.devicePixelRatio || 1;
+  const viewport = page.getViewport({ scale: estado.escala });
+
+  const canvas = document.getElementById("canvas-pagina");
+  canvas.width = Math.round(viewport.width * dpr);
+  canvas.height = Math.round(viewport.height * dpr);
+  canvas.style.width = Math.round(viewport.width) + "px";
+  canvas.style.height = Math.round(viewport.height) + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const paginaContainer = document.getElementById("pagina-container");
+  paginaContainer.style.width = Math.round(viewport.width) + "px";
+  paginaContainer.style.height = Math.round(viewport.height) + "px";
+
+  await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+  const camadaTexto = document.getElementById("camada-texto");
+  camadaTexto.style.width = Math.round(viewport.width) + "px";
+  camadaTexto.style.height = Math.round(viewport.height) + "px";
+
+  const avisoEl = document.getElementById("aviso-pagina");
+  avisoEl.classList.remove("mostrar");
+  avisoEl.innerHTML = "";
+
+  const infoPagina = obra.paginas && obra.paginas[numPagina - 1];
+  if (infoPagina && infoPagina.temTexto === true){
+    await construirCamadaTextoNativa(camadaTexto, page, viewport);
+  } else if (infoPagina && infoPagina.ocr && infoPagina.ocr !== "erro"){
+    construirCamadaTextoOcr(camadaTexto, infoPagina.ocr, viewport);
+  } else if (infoPagina && infoPagina.ocr === "erro"){
+    camadaTexto.innerHTML = "";
+    avisoEl.classList.add("mostrar");
+    avisoEl.innerHTML = "Não foi possível reconhecer o texto desta página (imagem ilegível ou falha no OCR). Você ainda pode criar uma <strong>marcação manual</strong> nesta página usando o botão na barra de ferramentas.";
+  } else if (obra.ocrStatus === "processando" || infoPagina === null || (infoPagina && infoPagina.temTexto === null)){
+    camadaTexto.innerHTML = "";
+    avisoEl.classList.add("mostrar");
+    avisoEl.innerHTML = "Esta página está sendo analisada / processada com OCR. O texto ficará selecionável assim que o processamento desta página terminar. Enquanto isso, você pode usar a <strong>marcação manual</strong>.";
+  } else {
+    camadaTexto.innerHTML = "";
+  }
+
+  renderizarDestaques(paginaContainer, obra.id, numPagina);
+
+  if (estado.jump && estado.jump.anotacaoId){
+    const alvo = paginaContainer.querySelector('.highlight[data-anotacao-id="' + estado.jump.anotacaoId + '"]');
+    if (alvo){
+      alvo.scrollIntoView({ block:"center", behavior:"smooth" });
+      alvo.classList.add("piscar");
+      setTimeout(function(){ alvo.classList.remove("piscar"); }, 1800);
+    }
+    estado.jump = null;
+  }
+}
+
+/* ---------- camada de texto nativa (PDF com texto real) ---------- */
+const canvasMedida = document.createElement("canvas");
+const ctxMedida = canvasMedida.getContext("2d");
+
+async function construirCamadaTextoNativa(container, page, viewport){
+  const conteudo = await page.getTextContent();
+  container.innerHTML = "";
+  conteudo.items.forEach(function(item){
+    if (!item.str || !item.str.trim()) return;
+    const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+    const angulo = Math.atan2(tx[1], tx[0]);
+    const alturaFonte = Math.hypot(tx[2], tx[3]);
+    if (!alturaFonte || alturaFonte < 0.5) return;
+
+    const span = document.createElement("span");
+    span.className = "text-item";
+    span.textContent = item.str;
+    span.style.left = tx[4] + "px";
+    span.style.top = (tx[5] - alturaFonte) + "px";
+    span.style.fontSize = alturaFonte + "px";
+    span.style.fontFamily = "sans-serif";
+    container.appendChild(span);
+
+    ctxMedida.font = alturaFonte + "px sans-serif";
+    const medida = ctxMedida.measureText(item.str).width;
+    const larguraAlvo = (item.width || 0) * viewport.scale;
+    let transformCss = "";
+    if (medida > 0 && larguraAlvo > 0) transformCss += "scaleX(" + (larguraAlvo / medida) + ") ";
+    if (angulo) transformCss += "rotate(" + angulo + "rad)";
+    if (transformCss) span.style.transform = transformCss.trim();
+  });
+}
+
+/* ---------- camada de texto sintética (OCR) ---------- */
+function construirCamadaTextoOcr(container, dadosOcr, viewport){
+  container.innerHTML = "";
+  const w = viewport.width, h = viewport.height;
+  (dadosOcr.palavras || []).forEach(function(p){
+    if (!p.texto) return;
+    const altura = Math.max((p.y1 - p.y0) * h, 4);
+    const largura = Math.max((p.x1 - p.x0) * w, 2);
+    const span = document.createElement("span");
+    span.className = "text-item ocr-item";
+    span.textContent = p.texto + " ";
+    span.style.left = (p.x0 * w) + "px";
+    span.style.top = (p.y0 * h) + "px";
+    span.style.height = altura + "px";
+    span.style.fontSize = Math.max(altura * 0.82, 6) + "px";
+    span.style.lineHeight = altura + "px";
+    span.style.fontFamily = "sans-serif";
+    container.appendChild(span);
+
+    ctxMedida.font = Math.max(altura * 0.82, 6) + "px sans-serif";
+    const medida = ctxMedida.measureText(p.texto + " ").width;
+    if (medida > 0 && largura > 0) span.style.transform = "scaleX(" + (largura / medida) + ")";
+  });
+}
+
+/* ---------- destaques (marcações persistidas, desenhadas por cima) ---------- */
+function renderizarDestaques(paginaContainer, obraId, numPagina){
+  paginaContainer.querySelectorAll(".highlight").forEach(function(el){ el.remove(); });
+  const w = paginaContainer.clientWidth, h = paginaContainer.clientHeight;
+  const anots = estado.anotacoes.filter(function(a){ return a.obraId === obraId && a.pagina === numPagina; });
+  anots.forEach(function(a){
+    (a.relRects || []).forEach(function(r){
+      const div = document.createElement("div");
+      div.className = "highlight";
+      div.style.left = (r.x * w) + "px";
+      div.style.top = (r.y * h) + "px";
+      div.style.width = (r.w * w) + "px";
+      div.style.height = (r.h * h) + "px";
+      div.style.background = hexParaRgba(a.cor, 0.38);
+      div.dataset.anotacaoId = a.id;
+      if (a.comentario) div.title = a.comentario;
+      div.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        abrirModalAnotacao({ edicaoId: a.id });
+      });
+      paginaContainer.appendChild(div);
+    });
+    if ((!a.relRects || a.relRects.length === 0) && a.origem === "manual"){
+      // marcação manual sem seleção: mostra um marcador fixo no canto
+      const marcador = document.createElement("div");
+      marcador.className = "highlight";
+      marcador.style.left = "6px";
+      marcador.style.top = "6px";
+      marcador.style.width = "22px";
+      marcador.style.height = "22px";
+      marcador.style.borderRadius = "50%";
+      marcador.style.background = hexParaRgba(a.cor, 0.75);
+      marcador.dataset.anotacaoId = a.id;
+      marcador.title = a.comentario || "Marcação manual";
+      marcador.addEventListener("click", function(ev){
+        ev.stopPropagation();
+        abrirModalAnotacao({ edicaoId: a.id });
+      });
+      paginaContainer.appendChild(marcador);
+    }
+  });
+}
+
+/* ---------- seleção de texto -> criação de marcação ---------- */
+document.getElementById("pagina-container").addEventListener("mouseup", function(){
+  setTimeout(tentarCapturarSelecao, 10);
+});
+document.getElementById("pagina-container").addEventListener("touchend", function(){
+  setTimeout(tentarCapturarSelecao, 10);
+});
+
+function tentarCapturarSelecao(){
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+  const range = sel.getRangeAt(0);
+  const container = document.getElementById("pagina-container");
+  if (!container.contains(range.commonAncestorContainer)) return;
+
+  const rects = Array.from(range.getClientRects());
+  if (!rects.length) return;
+  const caixaContainer = container.getBoundingClientRect();
+  const relRects = rects
+    .filter(function(r){ return r.width > 0.5 && r.height > 0.5; })
+    .map(function(r){
+      return {
+        x: (r.left - caixaContainer.left) / caixaContainer.width,
+        y: (r.top - caixaContainer.top) / caixaContainer.height,
+        w: r.width / caixaContainer.width,
+        h: r.height / caixaContainer.height
+      };
+    });
+  if (!relRects.length) return;
+
+  const texto = sel.toString().replace(/\s+/g, " ").trim();
+  sel.removeAllRanges();
+  if (!texto) return;
+
+  const obra = obraPorId(estado.obraAtualId);
+  const infoPagina = obra.paginas[estado.paginaAtual - 1];
+  const origem = (infoPagina && infoPagina.temTexto === true) ? "texto" : "ocr";
+
+  estado.pendente = {
+    obraId: estado.obraAtualId,
+    pagina: estado.paginaAtual,
+    relRects: relRects,
+    textoExato: texto,
+    origem: origem
+  };
+  abrirModalAnotacao({ novo: true });
+}
+
+document.getElementById("btn-marcar-manual").addEventListener("click", function(){
+  if (!estado.obraAtualId) return;
+  estado.pendente = {
+    obraId: estado.obraAtualId,
+    pagina: estado.paginaAtual,
+    relRects: [],
+    textoExato: "",
+    origem: "manual"
+  };
+  abrirModalAnotacao({ novo: true });
+});
+
+/* ---------- painel lateral de anotações da obra ---------- */
+function renderizarPainelAnotacoes(){
+  const lista = document.getElementById("lista-anotacoes-painel");
+  const contagem = document.getElementById("contagem-anotacoes-painel");
+  const anots = estado.anotacoes
+    .filter(function(a){ return a.obraId === estado.obraAtualId; })
+    .sort(function(a,b){ return a.pagina - b.pagina; });
+  contagem.textContent = anots.length;
+  lista.innerHTML = "";
+  if (!anots.length){
+    lista.innerHTML = '<p class="vazio" style="padding:10px 0;">Nenhuma marcação nesta obra ainda. Selecione um trecho no PDF para começar.</p>';
+    return;
+  }
+  anots.forEach(function(a){
+    const tema = temaPorId(a.temaId);
+    const item = document.createElement("div");
+    item.className = "item-anotacao";
+    item.style.borderLeftColor = a.cor;
+    const textoMostrado = a.textoCorrigido || a.textoExato || "(marcação manual sem trecho)";
+    item.innerHTML =
+      '<div class="linha-topo">' +
+        '<span class="pagina-tag">pág. ' + a.pagina + (tema ? " · " + escapeHtml(tema.nome) : "") + '</span>' +
+        '<span class="categoria-pill">' + escapeHtml(a.categoria) + '</span>' +
+      '</div>' +
+      '<div class="trecho">"' + escapeHtml(textoMostrado.slice(0,160)) + (textoMostrado.length > 160 ? "…" : "") + '"</div>' +
+      (a.comentario ? '<div class="comentario">' + escapeHtml(a.comentario) + '</div>' : "") +
+      '<div class="rodape">' +
+        '<button class="btn btn-pequeno" data-acao="ir">Ir à página</button>' +
+        '<button class="btn btn-pequeno" data-acao="editar">Editar</button>' +
+        '<button class="btn btn-pequeno btn-perigo" data-acao="excluir">Excluir</button>' +
+      '</div>';
+    item.querySelector('[data-acao="ir"]').addEventListener("click", function(){ irEExibirAnotacao(a); });
+    item.querySelector(".trecho").addEventListener("click", function(){ irEExibirAnotacao(a); });
+    item.querySelector('[data-acao="editar"]').addEventListener("click", function(){ abrirModalAnotacao({ edicaoId: a.id }); });
+    item.querySelector('[data-acao="excluir"]').addEventListener("click", function(){ excluirAnotacao(a.id); });
+    lista.appendChild(item);
+  });
+}
+
+async function irEExibirAnotacao(anotacao){
+  if (estado.obraAtualId !== anotacao.obraId){
+    await abrirNoLeitor(anotacao.obraId);
+  } else {
+    irParaTela("leitor");
+  }
+  estado.jump = { anotacaoId: anotacao.id };
+  renderizarPagina(anotacao.pagina);
+}
+
+/* ============================================================
+   MODAL DE ANOTAÇÃO (criar / editar)
+   ============================================================ */
+const modalAnotacao = document.getElementById("modal-anotacao");
+
+function preencherSelectTemas(selectEl, valorSelecionado){
+  selectEl.innerHTML = '<option value="">Nenhum</option>';
+  estado.temas.forEach(function(t){
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.nome;
+    if (t.id === valorSelecionado) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+}
+
+function abrirModalAnotacao(opcoes){
+  const selectTema = document.getElementById("select-tema-anotacao");
+  const selectCategoria = document.getElementById("select-categoria-anotacao");
+  const inputComentario = document.getElementById("input-comentario-anotacao");
+  const inputCorrigido = document.getElementById("input-texto-corrigido");
+  const previewTrecho = document.getElementById("preview-trecho");
+  const campoTrechoWrap = document.getElementById("campo-trecho-wrap");
+  const campoCorrecaoWrap = document.getElementById("campo-correcao-wrap");
+  const btnExcluir = document.getElementById("btn-excluir-anotacao");
+  const titulo = document.getElementById("titulo-modal-anotacao");
+
+  let dados;
+  if (opcoes.edicaoId){
+    dados = estado.anotacoes.find(function(a){ return a.id === opcoes.edicaoId; });
+    if (!dados) return;
+    estado.edicaoAnotacaoId = opcoes.edicaoId;
+    titulo.textContent = "Editar marcação";
+    btnExcluir.style.display = "inline-block";
+  } else {
+    dados = estado.pendente;
+    estado.edicaoAnotacaoId = null;
+    titulo.textContent = estado.pendente.origem === "manual" ? "Nova marcação manual" : "Nova marcação";
+    btnExcluir.style.display = "none";
+  }
+
+  const temTrecho = !!(dados.textoExato && dados.textoExato.trim());
+  campoTrechoWrap.style.display = temTrecho ? "block" : "none";
+  previewTrecho.textContent = dados.textoExato || "";
+
+  campoCorrecaoWrap.style.display = (dados.origem === "ocr") ? "block" : "none";
+  inputCorrigido.value = dados.textoCorrigido || "";
+
+  preencherSelectTemas(selectTema, dados.temaId || "");
+  selectCategoria.value = dados.categoria || "Outro";
+  inputComentario.value = dados.comentario || "";
+
+  const temaAtual = temaPorId(dados.temaId);
+  estado.corSelecionadaModal = dados.cor || (temaAtual ? temaAtual.cor : PALETA[0]);
+  construirPaleta(document.getElementById("paleta-anotacao"), estado.corSelecionadaModal, function(cor){
+    estado.corSelecionadaModal = cor;
+  });
+
+  selectTema.onchange = function(){
+    if (!dados.cor){
+      const t = temaPorId(selectTema.value);
+      if (t){
+        estado.corSelecionadaModal = t.cor;
+        construirPaleta(document.getElementById("paleta-anotacao"), t.cor, function(cor){ estado.corSelecionadaModal = cor; });
+      }
+    }
+  };
+
+  modalAnotacao.classList.add("aberto");
+}
+
+document.getElementById("btn-cancelar-anotacao").addEventListener("click", fecharModalAnotacao);
+function fecharModalAnotacao(){
+  modalAnotacao.classList.remove("aberto");
+  estado.pendente = null;
+  estado.edicaoAnotacaoId = null;
+}
+
+document.getElementById("btn-salvar-anotacao").addEventListener("click", async function(){
+  const selectTema = document.getElementById("select-tema-anotacao");
+  const selectCategoria = document.getElementById("select-categoria-anotacao");
+  const inputComentario = document.getElementById("input-comentario-anotacao");
+  const inputCorrigido = document.getElementById("input-texto-corrigido");
+
+  let anotacao;
+  if (estado.edicaoAnotacaoId){
+    anotacao = estado.anotacoes.find(function(a){ return a.id === estado.edicaoAnotacaoId; });
+  } else {
+    anotacao = {
+      id: uuid(),
+      obraId: estado.pendente.obraId,
+      pagina: estado.pendente.pagina,
+      relRects: estado.pendente.relRects,
+      textoExato: estado.pendente.textoExato,
+      origem: estado.pendente.origem,
+      dataCriacao: new Date().toISOString()
+    };
+  }
+
+  anotacao.temaId = selectTema.value || null;
+  anotacao.categoria = selectCategoria.value;
+  anotacao.comentario = inputComentario.value.trim();
+  anotacao.cor = estado.corSelecionadaModal;
+  if (anotacao.origem === "ocr") anotacao.textoCorrigido = inputCorrigido.value.trim();
+
+  try{
+    await dbSalvar("anotacoes", anotacao);
+  }catch(e){
+    console.error(e);
+    mostrarToast("Não foi possível salvar a marcação.");
+    return;
+  }
+
+  if (!estado.anotacoes.find(function(a){ return a.id === anotacao.id; })){
+    estado.anotacoes.push(anotacao);
+  }
+
+  fecharModalAnotacao();
+  renderizarPagina(estado.paginaAtual);
+  renderizarPainelAnotacoes();
+  renderizarBiblioteca();
+  mostrarToast("Marcação salva.");
+});
+
+document.getElementById("btn-excluir-anotacao").addEventListener("click", async function(){
+  if (!estado.edicaoAnotacaoId) return;
+  if (!confirm("Excluir esta marcação?")) return;
+  await excluirAnotacao(estado.edicaoAnotacaoId, true);
+  fecharModalAnotacao();
+});
+
+async function excluirAnotacao(id, semConfirmar){
+  if (!semConfirmar && !confirm("Excluir esta marcação?")) return;
+  await dbExcluir("anotacoes", id);
+  estado.anotacoes = estado.anotacoes.filter(function(a){ return a.id !== id; });
+  renderizarPagina(estado.paginaAtual);
+  renderizarPainelAnotacoes();
+  renderizarBiblioteca();
+  renderizarExplorar();
+  renderizarRevisao();
+  mostrarToast("Marcação excluída.");
+}
+
+/* ============================================================
+   TELA 3 — TEMAS & ESTUDO
+   ============================================================ */
+
+/* ---------- gerenciar temas ---------- */
+document.getElementById("form-novo-tema").addEventListener("submit", async function(e){
+  e.preventDefault();
+  const inputNome = document.getElementById("input-novo-tema");
+  const nome = inputNome.value.trim();
+  if (!nome) return;
+  const corSelEl = document.querySelector("#paleta-novo-tema .cor-opcao.selecionada");
+  const cor = corSelEl ? corSelEl.style.background && rgbParaHexAproximado(corSelEl.title) : document.getElementById("cor-customizada-novo-tema").value;
+  const corFinal = corSelEl ? corSelEl.title : document.getElementById("cor-customizada-novo-tema").value;
+
+  const novoTema = { id: uuid(), nome: nome, cor: corFinal || PALETA[0] };
+  await dbSalvar("temas", novoTema);
+  estado.temas.push(novoTema);
+  inputNome.value = "";
+  document.querySelectorAll("#paleta-novo-tema .cor-opcao").forEach(function(x){ x.classList.remove("selecionada"); });
+  renderizarGerenciarTemas();
+  mostrarToast('Tema "' + nome + '" criado.');
+});
+
+function rgbParaHexAproximado(hex){ return hex; }
+
+function renderizarGerenciarTemas(){
+  const grade = document.getElementById("grade-temas");
+  const vazio = document.getElementById("temas-vazio");
+  grade.innerHTML = "";
+  vazio.style.display = estado.temas.length ? "none" : "block";
+  estado.temas.forEach(function(tema){
+    const contagem = estado.anotacoes.filter(function(a){ return a.temaId === tema.id; }).length;
+    const cartao = document.createElement("div");
+    cartao.className = "cartao-tema";
+    cartao.innerHTML =
+      '<span class="pastilha-cor" style="background:' + tema.cor + '"></span>' +
+      '<span class="nome-tema">' + escapeHtml(tema.nome) + '</span>' +
+      '<span class="tag-contagem">' + contagem + '</span>' +
+      '<span class="acoes-tema"><button class="btn btn-pequeno" data-acao="editar">Editar</button></span>';
+    cartao.querySelector('[data-acao="editar"]').addEventListener("click", function(){ abrirModalTema(tema.id); });
+    grade.appendChild(cartao);
+  });
+}
+
+const modalTema = document.getElementById("modal-tema");
+function abrirModalTema(temaId){
+  const tema = temaPorId(temaId);
+  if (!tema) return;
+  estado.editandoTemaId = temaId;
+  document.getElementById("input-editar-nome-tema").value = tema.nome;
+  construirPaleta(document.getElementById("paleta-editar-tema"), tema.cor, function(cor){
+    estado.corSelecionadaModal = cor;
+  });
+  estado.corSelecionadaModal = tema.cor;
+  modalTema.classList.add("aberto");
+}
+document.getElementById("btn-cancelar-tema").addEventListener("click", function(){
+  modalTema.classList.remove("aberto");
+  estado.editandoTemaId = null;
+});
+document.getElementById("btn-salvar-tema").addEventListener("click", async function(){
+  const tema = temaPorId(estado.editandoTemaId);
+  if (!tema) return;
+  const novoNome = document.getElementById("input-editar-nome-tema").value.trim();
+  if (!novoNome) return;
+  tema.nome = novoNome;
+  tema.cor = estado.corSelecionadaModal;
+  await dbSalvar("temas", tema);
+  modalTema.classList.remove("aberto");
+  estado.editandoTemaId = null;
+  renderizarGerenciarTemas();
+  renderizarExplorar();
+  renderizarRevisao();
+  mostrarToast("Tema atualizado.");
+});
+document.getElementById("btn-excluir-tema").addEventListener("click", async function(){
+  const tema = temaPorId(estado.editandoTemaId);
+  if (!tema) return;
+  const contagem = estado.anotacoes.filter(function(a){ return a.temaId === tema.id; }).length;
+  const msg = contagem > 0
+    ? 'Excluir o tema "' + tema.nome + '"? ' + contagem + " marcação(ões) associadas ficarão sem tema."
+    : 'Excluir o tema "' + tema.nome + '"?';
+  if (!confirm(msg)) return;
+
+  for (const a of estado.anotacoes.filter(function(a){ return a.temaId === tema.id; })){
+    a.temaId = null;
+    await dbSalvar("anotacoes", a);
+  }
+  await dbExcluir("temas", tema.id);
+  estado.temas = estado.temas.filter(function(t){ return t.id !== tema.id; });
+  modalTema.classList.remove("aberto");
+  estado.editandoTemaId = null;
+  renderizarGerenciarTemas();
+  renderizarExplorar();
+  renderizarRevisao();
+  renderizarPainelAnotacoes();
+  mostrarToast("Tema excluído.");
+});
+
+/* ---------- explorar por tema ---------- */
+function atualizarSelecaoObrasFiltros(){
+  const selObra = document.getElementById("filtro-obra-explorar");
+  const valorAtual = selObra.value;
+  selObra.innerHTML = '<option value="">Todas</option>';
+  estado.obras.slice().sort(function(a,b){ return a.titulo.localeCompare(b.titulo); }).forEach(function(o){
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = o.titulo;
+    selObra.appendChild(opt);
+  });
+  if (valorAtual) selObra.value = valorAtual;
+
+  const selFiltroTema = document.getElementById("filtro-tema");
+  const temaAtualSel = selFiltroTema.value;
+  selFiltroTema.innerHTML = "";
+  estado.temas.forEach(function(t){
+    const opt = document.createElement("option");
+    opt.value = t.id; opt.textContent = t.nome;
+    selFiltroTema.appendChild(opt);
+  });
+  if (temaAtualSel) selFiltroTema.value = temaAtualSel;
+}
+
+["filtro-tema","filtro-categoria-explorar","filtro-obra-explorar","filtro-palavra-explorar"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", renderizarExplorar);
+  document.getElementById(id).addEventListener("change", renderizarExplorar);
+});
+
+function renderizarExplorar(){
+  atualizarSelecaoObrasFiltros();
+  const container = document.getElementById("resultados-explorar");
+  const vazio = document.getElementById("explorar-vazio");
+  const temaId = document.getElementById("filtro-tema").value;
+  const categoria = document.getElementById("filtro-categoria-explorar").value;
+  const obraId = document.getElementById("filtro-obra-explorar").value;
+  const palavra = (document.getElementById("filtro-palavra-explorar").value || "").toLowerCase().trim();
+
+  container.innerHTML = "";
+  if (!estado.temas.length){
+    vazio.style.display = "block";
+    vazio.textContent = "Cadastre um tema na aba 'Gerenciar temas' para começar a explorar.";
+    return;
+  }
+
+  let anots = estado.anotacoes.filter(function(a){ return temaId ? a.temaId === temaId : true; });
+  if (categoria) anots = anots.filter(function(a){ return a.categoria === categoria; });
+  if (obraId) anots = anots.filter(function(a){ return a.obraId === obraId; });
+  if (palavra){
+    anots = anots.filter(function(a){
+      const alvo = ((a.textoCorrigido || a.textoExato || "") + " " + (a.comentario||"")).toLowerCase();
+      return alvo.includes(palavra);
+    });
+  }
+
+  vazio.style.display = anots.length ? "none" : "block";
+  if (!anots.length){ vazio.textContent = "Nenhuma citação encontrada com esses filtros."; return; }
+
+  renderizarAgrupadoPorObra(container, anots, true);
+}
+
+/* ---------- fila de revisão ---------- */
+document.querySelectorAll("#filtro-categoria-revisao button").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll("#filtro-categoria-revisao button").forEach(function(b){ b.classList.toggle("ativa", b === btn); });
+    estado.categoriaRevisaoAtiva = btn.dataset.cat;
+    renderizarRevisao();
+  });
+});
+
+function renderizarRevisao(){
+  const container = document.getElementById("resultados-revisao");
+  const vazio = document.getElementById("revisao-vazio");
+  const anots = estado.anotacoes.filter(function(a){ return a.categoria === estado.categoriaRevisaoAtiva; });
+  container.innerHTML = "";
+  vazio.style.display = anots.length ? "none" : "block";
+  if (!anots.length) return;
+  renderizarAgrupadoPorObra(container, anots, false);
+}
+
+function renderizarAgrupadoPorObra(container, anotacoesLista, mostrarTema){
+  const porObra = new Map();
+  anotacoesLista.forEach(function(a){
+    if (!porObra.has(a.obraId)) porObra.set(a.obraId, []);
+    porObra.get(a.obraId).push(a);
+  });
+
+  const obrasOrdenadas = Array.from(porObra.keys())
+    .map(obraPorId)
+    .filter(Boolean)
+    .sort(function(a,b){ return a.titulo.localeCompare(b.titulo); });
+
+  obrasOrdenadas.forEach(function(obra){
+    const grupo = document.createElement("div");
+    grupo.className = "grupo-obra";
+    const metaObra = [obra.autor, obra.ano].filter(Boolean).join(", ");
+    grupo.innerHTML = '<h3>' + escapeHtml(obra.titulo) + (metaObra ? ' <span class="autor-ano">— ' + escapeHtml(metaObra) + '</span>' : '') + '</h3>';
+
+    porObra.get(obra.id)
+      .sort(function(a,b){ return a.pagina - b.pagina; })
+      .forEach(function(a){
+        const tema = temaPorId(a.temaId);
+        const card = document.createElement("div");
+        card.className = "citacao-card";
+        card.style.borderLeftColor = a.cor || "#999";
+        const textoMostrado = a.textoCorrigido || a.textoExato || "(marcação manual, sem trecho de texto)";
+        card.innerHTML =
+          '<div class="linha-topo">' +
+            '<span>pág. ' + a.pagina + (mostrarTema && tema ? " · " + escapeHtml(tema.nome) : "") + '</span>' +
+            '<span class="categoria-pill">' + escapeHtml(a.categoria) + '</span>' +
+          '</div>' +
+          '<blockquote>"' + escapeHtml(textoMostrado) + '"</blockquote>' +
+          (a.comentario ? '<div class="comentario">' + escapeHtml(a.comentario) + '</div>' : '');
+        card.addEventListener("click", function(){ irEExibirAnotacao(a); });
+        grupo.appendChild(card);
+      });
+
+    container.appendChild(grupo);
+  });
+}
+
+/* ============================================================
+   EXPORTAÇÃO / IMPORTAÇÃO
+   ============================================================ */
+function blobParaBase64(blob){
+  return new Promise(function(resolve, reject){
+    const leitor = new FileReader();
+    leitor.onloadend = function(){ resolve(leitor.result.split(",")[1] || ""); };
+    leitor.onerror = reject;
+    leitor.readAsDataURL(blob);
+  });
+}
+function base64ParaBlob(base64, tipo){
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: tipo || "application/pdf" });
+}
+
+function baixarArquivo(nome, conteudo, tipo){
+  const blob = (conteudo instanceof Blob) ? conteudo : new Blob([conteudo], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+}
+
+document.getElementById("btn-exportar-json").addEventListener("click", async function(){
+  mostrarToast("Preparando backup em JSON…");
+  try{
+    const obrasExport = [];
+    for (const obra of estado.obras){
+      const base64 = await blobParaBase64(obra.arquivoBlob);
+      obrasExport.push({
+        id: obra.id, titulo: obra.titulo, autor: obra.autor, ano: obra.ano,
+        dataUpload: obra.dataUpload, numPaginas: obra.numPaginas, paginas: obra.paginas,
+        ocrStatus: obra.ocrStatus, ocred: obra.ocred,
+        arquivoBase64: base64, tipoArquivo: obra.arquivoBlob.type || "application/pdf"
+      });
+    }
+    const pacote = {
+      versao: 1,
+      exportadoEm: new Date().toISOString(),
+      obras: obrasExport,
+      temas: estado.temas,
+      anotacoes: estado.anotacoes
+    };
+    baixarArquivo("marginalia-backup-" + Date.now() + ".json", JSON.stringify(pacote), "application/json");
+    mostrarToast("Backup JSON exportado.");
+  }catch(e){
+    console.error(e);
+    mostrarToast("Falha ao exportar o backup em JSON.");
+  }
+});
+
+document.getElementById("btn-exportar-md").addEventListener("click", function(){
+  const linhas = [];
+  linhas.push("# Fichamento de leituras\n");
+  estado.obras.slice().sort(function(a,b){ return a.titulo.localeCompare(b.titulo); }).forEach(function(obra){
+    const anotsObra = estado.anotacoes.filter(function(a){ return a.obraId === obra.id; });
+    if (!anotsObra.length) return;
+    const metaObra = [obra.autor, obra.ano].filter(Boolean).join(", ");
+    linhas.push("## " + obra.titulo + (metaObra ? " (" + metaObra + ")" : "") + "\n");
+
+    const porTema = new Map();
+    anotsObra.forEach(function(a){
+      const nomeTema = (temaPorId(a.temaId) || {}).nome || "Sem tema";
+      if (!porTema.has(nomeTema)) porTema.set(nomeTema, []);
+      porTema.get(nomeTema).push(a);
+    });
+
+    Array.from(porTema.keys()).sort().forEach(function(nomeTema){
+      linhas.push("### " + nomeTema + "\n");
+      porTema.get(nomeTema).sort(function(a,b){ return a.pagina - b.pagina; }).forEach(function(a){
+        const textoMostrado = a.textoCorrigido || a.textoExato || "(marcação manual)";
+        linhas.push("- **p. " + a.pagina + "** [" + a.categoria + "] — \"" + textoMostrado.replace(/\n/g," ") + "\"" + (a.comentario ? "  \n  _Comentário:_ " + a.comentario.replace(/\n/g," ") : ""));
+      });
+      linhas.push("");
+    });
+  });
+  baixarArquivo("marginalia-fichamento-" + Date.now() + ".md", linhas.join("\n"), "text/markdown");
+  mostrarToast("Markdown exportado.");
+});
+
+document.getElementById("btn-importar-json").addEventListener("click", function(){
+  document.getElementById("input-importar").click();
+});
+document.getElementById("input-importar").addEventListener("change", async function(e){
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (!confirm("Importar este backup irá adicionar/substituir obras, temas e anotações com os mesmos IDs do arquivo. Deseja continuar?")) return;
+
+  try{
+    const texto = await file.text();
+    const pacote = JSON.parse(texto);
+    if (!pacote || !Array.isArray(pacote.obras)) throw new Error("Formato inválido");
+
+    for (const o of pacote.obras){
+      const blob = base64ParaBlob(o.arquivoBase64, o.tipoArquivo);
+      const obraRestaurada = {
+        id: o.id, titulo: o.titulo, autor: o.autor, ano: o.ano,
+        arquivoBlob: blob, dataUpload: o.dataUpload, numPaginas: o.numPaginas,
+        paginas: o.paginas, ocrStatus: o.ocrStatus, ocred: o.ocred
+      };
+      await dbSalvar("obras", obraRestaurada);
+      estado.documentosPdf.delete(o.id);
+    }
+    for (const t of (pacote.temas || [])) await dbSalvar("temas", t);
+    for (const a of (pacote.anotacoes || [])) await dbSalvar("anotacoes", a);
+
+    const [obras, temas, anotacoes] = await Promise.all([dbTodos("obras"), dbTodos("temas"), dbTodos("anotacoes")]);
+    estado.obras = obras; estado.temas = temas; estado.anotacoes = anotacoes;
+
+    renderizarBiblioteca();
+    renderizarGerenciarTemas();
+    renderizarExplorar();
+    renderizarRevisao();
+    mostrarToast("Backup importado com sucesso.");
+  }catch(err){
+    console.error(err);
+    mostrarToast("Não foi possível importar este arquivo. Verifique se é um backup JSON válido do Marginália.");
+  }
+});
+
+/* ============================================================
+   INÍCIO
+   ============================================================ */
+carregarTudo();
+
+})();
+</script>
+</body>
+</html>
